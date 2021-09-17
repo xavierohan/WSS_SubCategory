@@ -31,7 +31,7 @@ if __name__ == '__main__':
     parser.add_argument("--weights", required=True, type=str, help="the path to the testing model")
     parser.add_argument("--network", default="network.resnet38_cls", type=str)
     parser.add_argument("--infer_list", default="voc12/train.txt", type=str)
-    parser.add_argument("--num_workers", default=8, type=int)
+    parser.add_argument("--num_workers", default=3, type=int)
     parser.add_argument("--voc12_root", required=True, type=str, help="the path to the dataset folder")
     parser.add_argument("--save_crf", default=0, type=int, help="the flag to apply crf")
     parser.add_argument("--low_alpha", default=4, type=int, help="crf parameter")
@@ -117,7 +117,7 @@ if __name__ == '__main__':
         cam_dict = infer_utils.cam_npy_to_cam_dict(norm_cam, label)
         seg_map = infer_utils.cam_npy_to_label_map(infer_utils.dict2npy(cam_dict, label, args.th))
         cam_20_list.append(seg_map)
-        cam_20_heatmap = infer_utils.draw_single_heatmap(norm_cam, label, orig_img, args.save_path, img_name)
+        # cam_20_heatmap = infer_utils.draw_single_heatmap(norm_cam, label, orig_img, args.save_path, img_name)
 
 
         # class 200 cam --> class 200 segmap
@@ -135,9 +135,9 @@ if __name__ == '__main__':
         gt_list.append(gt_map)
 
 
-        if args.save_out_cam == 1:
-            np.save(os.path.join(args.save_path, 'output_CAM_npy/cls_20', img_name + '.npy'), cam_dict)
-            # np.save(os.path.join(args.save_path, 'output_CAM_npy/cls_200', img_name + '.npy'), cam_dict_200)
+        # if args.save_out_cam == 1:
+        #     np.save(os.path.join(args.save_path, 'output_CAM_npy/cls_20', img_name + '.npy'), cam_dict)
+        #     # np.save(os.path.join(args.save_path, 'output_CAM_npy/cls_200', img_name + '.npy'), cam_dict_200)
 
 
         def _crf_with_alpha(cam_dict, alpha):
@@ -154,17 +154,17 @@ if __name__ == '__main__':
 
             return n_crf_al
 
-        if args.save_crf == 1:
-            crf_la = _crf_with_alpha(cam_dict, args.low_alpha)  # type(crf_la): <class 'dict'>
-            # np.save(os.path.join(args.save_path, 'crf/out_la_crf', img_name + '.npy'), crf_la)
-            crf_ha = _crf_with_alpha(cam_dict, args.high_alpha)
-            # np.save(os.path.join(args.save_path, 'crf/out_ha_crf', img_name + '.npy'), crf_ha)
+        # if args.save_crf == 1:
+        #     crf_la = _crf_with_alpha(cam_dict, args.low_alpha)  # type(crf_la): <class 'dict'>
+        #     # np.save(os.path.join(args.save_path, 'crf/out_la_crf', img_name + '.npy'), crf_la)
+        #     crf_ha = _crf_with_alpha(cam_dict, args.high_alpha)
+        #     # np.save(os.path.join(args.save_path, 'crf/out_ha_crf', img_name + '.npy'), crf_ha)
 
-        print("k={} Round-{}| NOW ITER: {}".format(args.k_cluster, args.round_nb, iter))
+        # print("k={} Round-{}| NOW ITER: {}".format(args.k_cluster, args.round_nb, iter))
 
 
-    print(len(cam_20_list), len(gt_list), len(cam_200_list))
-    print('NOW K: {} R{}'.format(args.k_cluster, args.round_nb))
+    # print(len(cam_20_list), len(gt_list), len(cam_200_list))
+    # print('NOW K: {} R{}'.format(args.k_cluster, args.round_nb))
 
 
     score = iouutils.scores(gt_list, cam_20_list, n_class=21)

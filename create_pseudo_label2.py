@@ -1,3 +1,4 @@
+
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans, AffinityPropagation
@@ -175,6 +176,8 @@ if __name__ == '__main__':
         class_feature_list = []
         for idx in filename_idx_list:
             class_feature_list.append(features[idx])
+            class_feature_list.append(features[idx+1])
+            class_feature_list.append(features[idx+2])
         print('Class {}: {}'.format(i, len(class_feature_list)))
 
         # apply kmeans
@@ -189,6 +192,8 @@ if __name__ == '__main__':
         distance = k_center.inertia_
         subclass_nb = k_cluster
 
+        labels=labels[::3]
+
         # generate the sub-category label
         all_class_kmeans_label = make_subclass_label(i, labels, subclass_nb, all_class_kmeans_label)
 
@@ -196,7 +201,6 @@ if __name__ == '__main__':
     # merge the kmeans label to make the sub-category label
     new_label_list = generate_merged_label(repeat_list, all_class_kmeans_label)
     print(len(merge_filename_list), len(new_label_list))   # 16458
-
 
     # create the parent label and the sub-category label as the training data with
     train_filename_list, train_label_200, train_label_20 = create_train_data(merge_filename_list, new_label_list, keep_idx_list)
@@ -218,3 +222,4 @@ if __name__ == '__main__':
 
     print('##################### k_{} Round-{} pseudo labels are saved at {}/label. #####################'.format(args.k_cluster, args.for_round_nb, args.save_folder))
     print('##################### You can start to train the classification model. #####################')
+

@@ -1,3 +1,5 @@
+
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -36,11 +38,19 @@ if __name__ == '__main__':
     parser.add_argument("--weights", required=True, default="./weights/res38_cls.pth", type=str, help="the weight of the model")
     parser.add_argument("--network", default="network.resnet38_cls", type=str, help="the network of the classifier")
     parser.add_argument("--infer_list", default="voc12/val.txt", type=str, help="the filename list for feature extraction")
-    parser.add_argument("--num_workers", default=8, type=int)
+    parser.add_argument("--num_workers", default=3, type=int)
     parser.add_argument("--voc12_root", default="/home/julia/datasets/VOC2012", type=str, help="the path to the dataset folder")
     parser.add_argument("--from_round_nb", required=True, default=None, type=int, help="the round number of the extracter, e.g., 1st round: from_round_nb=0, 2nd round: from_round_nb=1, and so on")
     parser.add_argument("--k_cluster", default=10, type=int, help="the number of the sub-category")
     parser.add_argument("--save_folder", required=True, default='./save', type=str, help="the path to save the extracted feature")
+    parser.add_argument("--nmb_crops", type=int, default=[2], nargs="+",
+                    help="list of number of crops (example: [2, 6])")
+    parser.add_argument("--size_crops", type=int, default=[224], nargs="+",
+                        help="crops resolutions (example: [224, 96])")
+    parser.add_argument("--min_scale_crops", type=float, default=[0.14], nargs="+",
+                        help="argument in RandomResizedCrop (example: [0.14, 0.05])")
+    parser.add_argument("--max_scale_crops", type=float, default=[1.], nargs="+",
+                        help="argument in RandomResizedCrop (example: [1., 0.14])")
 
     args = parser.parse_args()
 
@@ -59,6 +69,10 @@ if __name__ == '__main__':
                                                         model.normalize,
                                                         imutils.HWC_to_CHW
                                                         ]))
+    # infer_dataset = voc12.data.VOC12ClsDatasetMultiCrop(args.infer_list, args.voc12_root,args.size_crops,
+    #                                                 args.nmb_crops,
+    #                                                 args.min_scale_crops,
+    #                                                 args.max_scale_crops, inter_transform=None, unit=1)
 
     infer_data_loader = DataLoader(infer_dataset, shuffle=False, num_workers=args.num_workers, pin_memory=True)
 
@@ -76,6 +90,7 @@ if __name__ == '__main__':
         filename_list.append(img_name)
 
         # extract feature
+        # for i in img_list:
         if args.from_round_nb == 0:
             tmp, feature, _ = model.forward(img_list[0].cuda(), args.from_round_nb)
         else:
