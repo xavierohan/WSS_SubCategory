@@ -293,7 +293,7 @@ if __name__ == '__main__':
             cls_20_loss = F.multilabel_soft_margin_loss(x_20, label_20)
             cls_200_loss = F.multilabel_soft_margin_loss(x_200, label_200)
 
-            loss = cls_20_loss + (args.subcls_loss_weight*cls_200_loss)+ args.alpha**ret_diff(parent_class, y_200)
+            loss = cls_20_loss + (args.subcls_loss_weight*cls_200_loss)+ args.alpha*ret_diff(parent_class, y_200)
 
             # if iter%100 ==0:
             #         print(loss,0.001*ret_diff(parent_class, y_200))
