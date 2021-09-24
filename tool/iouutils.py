@@ -48,6 +48,9 @@ def record_score(score, save_path, iou_type):
     for i in range(21):
         score_list.append(score['Class IoU'][i])
         aveJ = score['Mean IoU']
+    pixel_acc = score["Pixel Accuracy"]
+    Mean_acc = score["Mean Accuracy"]
+    freq_acc = score["Frequency Weighted IoU"]
 
     with open('{}/iou_{}.txt'.format(save_path, iou_type), 'w') as f:
         for num, cls_iou in enumerate(score_list):
@@ -55,3 +58,10 @@ def record_score(score, save_path, iou_type):
             f.write('class {:2d} {:12} IU {:.2f}'.format(num, CAT_LIST[num], round(cls_iou, 3)) + '\n')
         print('meanIOU: ' + str(aveJ) + '\n')
         f.write('meanIOU: ' + str(aveJ) + '\n')
+        print('Pixel Accuracy: ' + str(pixel_acc) + '\n')
+        f.write('Pixel Accuracy: ' + str(pixel_acc) + '\n')
+        print('Mean Accuracy: ' + str(Mean_acc) + '\n')
+        f.write('Mean Accuracy: ' + str(Mean_acc) + '\n')
+        print('Frequency Weighted IoU: ' + str(freq_acc) + '\n')
+        f.write('Frequency Weighted IoU: ' + str(freq_acc) + '\n')
+        

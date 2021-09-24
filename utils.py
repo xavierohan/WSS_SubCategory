@@ -9,7 +9,7 @@ def find_crop_img_label_class_index():
     f.close()
     crop_img_filename_list = crop_image_filename_list[:-1]
 
-    crop_img_label_list = np.load('crop/crop_img_feature/crop_img_label.npy')
+    crop_img_label_list = np.load('crop/crop_img_feature/crop_img_label.npy', allow_pickle=True)
     print(len(crop_img_filename_list), crop_img_label_list.shape[0])
 
     class_dict = {}
