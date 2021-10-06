@@ -5,6 +5,8 @@ from torch.utils.data import Dataset
 import PIL.Image
 import os.path
 import scipy.misc
+from torchvision import transforms
+import cv2
 
 import pdb
 
@@ -41,7 +43,7 @@ def load_image_label_list_from_xml(img_name_list, voc12_root):
     return [load_image_label_from_xml(img_name, voc12_root) for img_name in img_name_list]
 
 def load_image_label_list_from_npy(img_name_list):
-    cls_labels_dict = np.load('voc12/cls_labels.npy').item()
+    cls_labels_dict = np.load('voc12/cls_labels.npy', allow_pickle=True).item()
 
     return [cls_labels_dict[img_name] for img_name in img_name_list]
 
@@ -125,6 +127,124 @@ class VOC12ClsDatasetMSF(VOC12ClsDataset):
         return name, msf_img_list, label
 
 
+class VOC12ClsDatasetMultiCrop(VOC12ClsDataset):
+
+    def __init__(self, img_name_list_path, voc12_root, size_crops,
+        nmb_crops,
+        min_scale_crops,
+        max_scale_crops, inter_transform=None, unit=1):
+        super().__init__(img_name_list_path, voc12_root, transform=None)
+        trans_multicrop = []
+        # color_transform = transforms.Compose([get_color_distortion(), RandomGaussianBlur()])
+        mean = [0.485, 0.456, 0.406]
+        std = [0.228, 0.224, 0.225]
+        for i in range(len(size_crops)):
+            randomresizedcrop = transforms.RandomResizedCrop(
+                size_crops[i],
+                scale=(min_scale_crops[i], max_scale_crops[i]),
+            )
+            trans_multicrop.extend([transforms.Compose([
+                randomresizedcrop,
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std)])
+            ] * nmb_crops[i])
+        self.trans_multicrop = trans_multicrop
+        self.original_transform = transforms.Compose([
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std)])
+        
+        self.inter_transform = None
+                
+        # pdb.set_trace()
+
+    def __getitem__(self, idx):
+        name, img, label = super().__getitem__(idx)
+        multi_crops = [self.original_transform(img)] #original image
+        multi_crops.extend(list(map(lambda trans: trans(img), self.trans_multicrop)))
+        if self.inter_transform is not None:
+            for i in range(len(multi_crops)):
+                multi_crops[i] = self.inter_transform(multi_crops[i])
+
+        return name, multi_crops, label
+# class VOC12ClsDatasetMultiCrop(VOC12ClsDataset):
+
+#     def __init__(self,size_crops,
+#         nmb_crops,
+#         min_scale_crops,
+#         max_scale_crops, img_name_list_path, voc12_root, scales, inter_transform=None, unit=1):
+#         super().__init__(img_name_list_path, voc12_root, transform=None)
+#         self.scales = scales
+#         self.unit = unit
+#         self.inter_transform = inter_transform
+#         # pdb.set_trace()
+#         trans_multicrop = []
+#         # color_transform = transforms.Compose([get_color_distortion(), RandomGaussianBlur()])
+#         mean = [0.485, 0.456, 0.406]
+#         std = [0.228, 0.224, 0.225]
+#         for i in range(len(size_crops)):
+#             randomresizedcrop = transforms.RandomResizedCrop(
+#                 size_crops[i],
+#                 scale=(min_scale_crops[i], max_scale_crops[i]),
+#             )
+#             trans_multicrop.extend([transforms.Compose([
+#                 randomresizedcrop,
+#                 transforms.ToTensor(),
+#                 transforms.Normalize(mean=mean, std=std)])
+#             ] * nmb_crops[i])
+#         self.trans_multicrop = trans_multicrop
+#         self.original_transform = transforms.Compose([
+#                 transforms.Resize((224, 224)),
+#                 transforms.ToTensor(),
+#                 transforms.Normalize(mean=mean, std=std)])
+
+#     def __getitem__(self, idx):
+#         name, img, label = super().__getitem__(idx)
+
+#         rounded_size = (int(round(img.size[0]/self.unit)*self.unit), int(round(img.size[1]/self.unit)*self.unit))
+
+#         ms_img_list = []
+
+#         # Multi Scale
+#         for s in self.scales:
+#             target_size = (round(rounded_size[0]*s), round(rounded_size[1]*s))
+#             s_img = img.resize(target_size, resample=PIL.Image.CUBIC)
+#             ms_img_list.append(s_img)
+
+
+#         if self.inter_transform:
+#             for i in range(len(ms_img_list)):
+#                 ms_img_list[i] = self.inter_transform(ms_img_list[i])
+
+#         msf_img_list = []
+#         for i in range(len(ms_img_list)):
+#             msf_img_list.append(ms_img_list[i])
+#             msf_img_list.append(np.flip(ms_img_list[i], -1).copy()) #####
+
+
+#         # multi_crops = [img] #original image
+#         # multi_crops.extend(list(map(lambda trans: trans(img), self.trans_multicrop)))
+
+#         return name, msf_img_list, label
+
+
+class RandomGaussianBlur(object):
+    def __call__(self, img):
+        do_it = np.random.rand() > 0.5
+        if not do_it:
+            return img
+        sigma = np.random.rand() * 1.9 + 0.1
+        return cv2.GaussianBlur(np.asarray(img), (23, 23), sigma)
+
+def get_color_distortion(s=1.0):
+    # s is the strength of color distortion.
+    color_jitter = transforms.ColorJitter(0.8*s, 0.8*s, 0.8*s, 0.2*s)
+    rnd_color_jitter = transforms.RandomApply([color_jitter], p=0.8)
+    rnd_gray = transforms.RandomGrayscale(p=0.2)
+    color_distort = transforms.Compose([rnd_color_jitter, rnd_gray])
+    return color_distort
+
+
 class ExtractAffinityLabelInRadius():
 
     def __init__(self, cropsize, radius=5):
@@ -204,8 +324,8 @@ class VOC12AffDataset(VOC12ImageDataset):
 
         label_ha_path = os.path.join(self.label_ha_dir, name + '.npy')
 
-        label_la = np.load(label_la_path).item()
-        label_ha = np.load(label_ha_path).item()
+        label_la = np.load(label_la_path, allow_pickle=True).item()
+        label_ha = np.load(label_ha_path, allow_pickle=True).item()
 
         label = np.array(list(label_la.values()) + list(label_ha.values()))
         label = np.transpose(label, (1, 2, 0))
